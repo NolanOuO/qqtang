@@ -42,6 +42,10 @@
     "player_rescue_score": 10,
     "item_pickup_score": 10
   },
+  "adventure_assist": {
+    "enabled": false,
+    "delay_ms": 2000
+  },
   "competitive_boss_rewards": {
     "sailor": [
       { "item_id": 450, "item_count": 1 },

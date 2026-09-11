@@ -83,6 +83,14 @@ type Server struct {
 	battleMu              sync.RWMutex
 	battles               map[uint32]*match.AdventureBattle
 	competitiveBattles    map[uint32]*match.CompetitiveBattle
+	// assistMu guards the single-flight instant-clear schedule per stable
+	// match GameID. Pending entries are lazy-initialized so focused tests
+	// constructing &Server{} keep working; production New() seeds the maps
+	// from Config.
+	assistMu              sync.Mutex
+	assistEnabled         atomic.Bool
+	assistPending         map[uint32]uint64
+	assistEpoch           uint64
 	competitiveAIMu       sync.Mutex
 	competitiveAIPolicy   battleengine.Policy
 	competitiveAICloser   io.Closer
@@ -484,6 +492,7 @@ func New(config Config) (*Server, error) {
 		petFoodsByItem:   resources.petFoodsByItem, petExperienceTable: resources.petExperienceTable,
 		battles:               make(map[uint32]*match.AdventureBattle),
 		competitiveBattles:    make(map[uint32]*match.CompetitiveBattle),
+		assistPending:         make(map[uint32]uint64),
 		competitiveAIPolicy:   competitiveAIPolicy,
 		competitiveAIRuntime:  make(map[uint32]*liveCompetitiveAIRuntime),
 		world:                 application.NewWorld(),
@@ -496,10 +505,12 @@ func New(config Config) (*Server, error) {
 		directoryHallPayload:  directoryHallPayload,
 		gameSectionID:         gameSectionID,
 	}
+	server.assistEnabled.Store(config.AdventureAssist.Enabled)
 	if config.GMHTTPAddress != "" {
 		gm, gmErr := gmserver.New(playerStore, itemEntries, equipmentCatalog, config.ClientRoot, config.playerProfileForUIN,
 			gmserver.WithCredentials(config.GMCredentials), gmserver.WithItemImageAliases(config.ItemImageAliasesPath),
-			gmserver.WithAccountOnlineCheck(server.accountOnlineForGM), gmserver.WithPlayerService(playerService))
+			gmserver.WithAccountOnlineCheck(server.accountOnlineForGM), gmserver.WithPlayerService(playerService),
+			gmserver.WithAdventureAssistControl(server.adventureAssistStatusForGM(), server.setAdventureAssistEnabledForGM(), server.triggerAdventureAssistForGM()))
 		if gmErr != nil {
 			captureWriter.Close()
 			if playerStore != nil {

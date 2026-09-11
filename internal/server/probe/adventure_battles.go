@@ -41,6 +41,9 @@ func (server *Server) removeAdventureBattle(gameID uint32) {
 	server.battleMu.Lock()
 	delete(server.battles, gameID)
 	server.battleMu.Unlock()
+	// Drop any armed instant-clear timer so a late fire cannot credit a
+	// recycled GameID or resurrect progress for a settled match.
+	server.cancelAdventureAssist(gameID)
 }
 
 func (server *Server) adventureBattle(gameID uint32) (*match.AdventureBattle, error) {

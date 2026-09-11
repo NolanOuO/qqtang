@@ -285,6 +285,71 @@ func (battle *AdventureBattle) ItemSeed() uint32 {
 	return battle.itemSeed
 }
 
+// GameID returns the stable match identifier shared across all stages of one
+// adventure run.
+func (battle *AdventureBattle) GameID() uint32 {
+	if battle == nil {
+		return 0
+	}
+	battle.mu.Lock()
+	defer battle.mu.Unlock()
+	return battle.gameID
+}
+
+// MapID returns the current stage map identifier.
+func (battle *AdventureBattle) MapID() uint32 {
+	if battle == nil {
+		return 0
+	}
+	battle.mu.Lock()
+	defer battle.mu.Unlock()
+	return battle.mapID
+}
+
+// NPCProgress reports the authoritative recorded NPC-instance deaths and the
+// configured expectation for the current stage. Unknown legacy stages use a
+// zero expectation and stay client-authoritative for completion.
+func (battle *AdventureBattle) NPCProgress() (recorded uint32, expected uint32) {
+	if battle == nil {
+		return 0, 0
+	}
+	battle.mu.Lock()
+	defer battle.mu.Unlock()
+	return battle.npcDeathCount, battle.expectedNPCDeaths
+}
+
+// StageCompleted reports whether the current stage's configured NPC-instance
+// count has been reached.
+func (battle *AdventureBattle) StageCompleted() bool {
+	if battle == nil {
+		return false
+	}
+	battle.mu.Lock()
+	defer battle.mu.Unlock()
+	return battle.stageCompleted
+}
+
+// FinalVictoryPending reports whether the final-stage victory is locked and
+// waiting for the loot-grace settlement.
+func (battle *AdventureBattle) FinalVictoryPending() bool {
+	if battle == nil {
+		return false
+	}
+	battle.mu.Lock()
+	defer battle.mu.Unlock()
+	return battle.finalVictoryPending
+}
+
+// Concluded reports whether the battle reached a terminal settlement state.
+func (battle *AdventureBattle) Concluded() bool {
+	if battle == nil {
+		return false
+	}
+	battle.mu.Lock()
+	defer battle.mu.Unlock()
+	return battle.concluded
+}
+
 // CanAdvanceStage reports whether a client doorway request may be accepted.
 // Unknown legacy stages (expected count zero) retain the client request as the
 // completion authority; mapped stages require the observed instance count.

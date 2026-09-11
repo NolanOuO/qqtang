@@ -39,6 +39,9 @@ h2 { margin-bottom: .2rem; font-size: 1.2rem; }
 .health span { width: .65rem; height: .65rem; border-radius: 50%; background: #f0ad4e; box-shadow: 0 0 0 4px rgba(240,173,78,.15); }
 .health.ok span { background: #34b27b; box-shadow: 0 0 0 4px rgba(52,178,123,.15); }
 .health.error span { background: var(--red); box-shadow: 0 0 0 4px rgba(217,74,91,.15); }
+#assist em { font-style: normal; white-space: nowrap; }
+#assist button { white-space: nowrap; }
+#assist button:disabled { opacity: .45; cursor: not-allowed; }
 .layout { display: grid; grid-template-columns: minmax(250px, 320px) minmax(0, 1fr); gap: 1.2rem; padding: 0 clamp(1.2rem, 4vw, 4rem) 3rem; }
 .panel { background: var(--panel); border: 1px solid rgba(210,228,239,.9); border-radius: 22px; box-shadow: var(--shadow); }
 .accounts { padding: 1.2rem; align-self: start; position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow: auto; }

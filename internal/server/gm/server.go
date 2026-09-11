@@ -53,6 +53,7 @@ type Server struct {
 	imageCache       sync.Map
 	credentials      *Credentials
 	accountOnline    func(uint32) bool
+	adventureAssist  *adventureAssistControl
 	authCache        sync.Map
 }
 
@@ -277,6 +278,8 @@ func (server *Server) Handler() http.Handler {
 	mux.HandleFunc("/gm/api/items/", server.handleItemImage)
 	mux.HandleFunc("/gm/api/pets", server.handlePets)
 	mux.HandleFunc("/gm/api/pet-models/", server.handlePetModelImage)
+	mux.HandleFunc("/gm/api/adventure-assist", server.handleAdventureAssist)
+	mux.HandleFunc("/gm/api/adventure-assist/trigger", server.handleAdventureAssistTrigger)
 	mux.HandleFunc("/gm/", server.handleStatic)
 	mux.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		http.Redirect(writer, request, "/gm/", http.StatusTemporaryRedirect)

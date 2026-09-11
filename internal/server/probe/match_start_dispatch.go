@@ -303,6 +303,9 @@ func (server *Server) prepareAdventureRoomMatchStart(session *connectionSession,
 	// actor without reacquiring that mutex and lock only the peer sessions.
 	server.projectRoomMatchFromLockedSession(session, session.RoomID, session.CurrentGameID, selectedMap.ID, nil)
 	prepared.followUpResult = fmt.Sprintf("qqt_adventure_game_begin_map_%d", selectedMap.ID)
+	// Arm the optional instant-clear assistant after the client consumes
+	// GAME_BEGIN. Scheduling takes no session lock and is safe here.
+	server.scheduleAdventureAssist(session.RoomID, session.CurrentGameID, selectedMap.ID)
 	return prepared, nil
 }
 

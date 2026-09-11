@@ -117,6 +117,9 @@ func (server *Server) handleAdventureNextMap(session *connectionSession, data []
 	if err = battle.AdvanceStageWithRule(nextMap.ID, nextData.ItemSeed, nextRule.ExpectedNPCDeaths, transition.ArbitratorPlayerID, transition.Survivors); err != nil {
 		return result, err
 	}
+	// The new stage supersedes any pending assist timer for the previous map;
+	// scheduling is keyed by stable match GameID with an epoch guard.
+	server.scheduleAdventureAssist(session.RoomID, session.CurrentGameID, nextMap.ID)
 	result.followUpResult = fmt.Sprintf("qqt_adventure_next_map_%d", nextMap.ID)
 	result.followUpPeerPlayers = adventureParticipantIDs(transition.Survivors)
 	result.startFollowUpPeerPlayers = result.followUpPeerPlayers

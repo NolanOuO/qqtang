@@ -39,6 +39,7 @@ type Config struct {
 	GMAuthPath             string                                   `json:"gm_auth_path,omitempty"`
 	DirectoryHall          *DirectoryHallConfig                     `json:"directory_hall,omitempty"`
 	AdventureRewards       AdventureRewardConfig                    `json:"adventure_rewards,omitempty"`
+	AdventureAssist        AdventureAssistConfig                    `json:"adventure_assist,omitempty"`
 	CompetitiveBossRewards map[string][]CompetitiveBossRewardConfig `json:"competitive_boss_rewards,omitempty"`
 	CompetitiveAI          CompetitiveAIConfig                      `json:"competitive_ai,omitempty"`
 	MaxPacketSize          int                                      `json:"max_packet_bytes"`
@@ -148,6 +149,31 @@ type AdventureRewardConfig struct {
 	NPCKillScore      uint32 `json:"npc_kill_score"`
 	PlayerRescueScore uint32 `json:"player_rescue_score"`
 	ItemPickupScore   uint32 `json:"item_pickup_score"`
+}
+
+// AdventureAssistConfig gates the local-server adventure instant-clear
+// assistant. Disabled is the zero value and preserves the stock native
+// gameplay flow. When enabled, every adventure map entry schedules one
+// server-driven clear of that stage's configured monsters and BOSS shortly
+// after the client consumes its GAME_BEGIN/NEXTMAP payload.
+//
+// DelayMS waits for battlefield initialization before the synthetic deaths
+// are pushed; zero selects the 2000 ms default. DisableVisualDeaths keeps
+// the authoritative courage/progress accounting but skips the 0x0FA7
+// per-instance death pushes for protocol experiments.
+type AdventureAssistConfig struct {
+	Enabled             bool `json:"enabled,omitempty"`
+	DelayMS             int  `json:"delay_ms,omitempty"`
+	DisableVisualDeaths bool `json:"disable_visual_deaths,omitempty"`
+}
+
+// assistDelay returns the validated scheduling delay. Zero selects the
+// default so omitted fields behave like an explicit 2000 ms choice.
+func (assist AdventureAssistConfig) assistDelay() time.Duration {
+	if assist.DelayMS == 0 {
+		return 2 * time.Second
+	}
+	return time.Duration(assist.DelayMS) * time.Millisecond
 }
 
 // CompetitiveBossRewardConfig is a reconstructed server-side BOSS_INFO
@@ -483,6 +509,9 @@ func (config *Config) validate(configBase string) error {
 	}
 	if config.ForgeSuccessPercent != nil && (*config.ForgeSuccessPercent < 0 || *config.ForgeSuccessPercent > 100) {
 		return fmt.Errorf("forge_apply_success_percent is outside 0..100")
+	}
+	if config.AdventureAssist.DelayMS < 0 || config.AdventureAssist.DelayMS > 30000 {
+		return fmt.Errorf("adventure_assist.delay_ms is outside 0..30000")
 	}
 	for candidateID, rewards := range config.CompetitiveBossRewards {
 		if strings.TrimSpace(candidateID) == "" {

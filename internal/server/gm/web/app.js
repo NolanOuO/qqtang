@@ -85,6 +85,38 @@ async function loadHealth() {
   }
 }
 
+async function loadAdventureAssist() {
+  try {
+    renderAdventureAssist(await api("/gm/api/adventure-assist"));
+  } catch (error) {
+    $("assist").className = "health error";
+    $("assist-text").textContent = "秒杀助手：不可用";
+    $("assist-toggle").disabled = true;
+    $("assist-trigger").disabled = true;
+  }
+}
+
+function renderAdventureAssist(status) {
+  state.assist = status;
+  $("assist").className = `health${status.enabled ? " ok" : " pending"}`;
+  $("assist-text").textContent = `秒杀助手：${status.enabled ? "开启" : "关闭"} · ${status.pending} 个待触发`;
+  $("assist-toggle").textContent = status.enabled ? "关闭" : "开启";
+  $("assist-toggle").disabled = false;
+  $("assist-trigger").disabled = false;
+}
+
+async function toggleAdventureAssist() {
+  const enabled = !(state.assist && state.assist.enabled);
+  renderAdventureAssist(await api("/gm/api/adventure-assist", { method: "POST", body: JSON.stringify({ enabled }) }));
+  toast(`探险秒杀助手已${enabled ? "开启" : "关闭"}`);
+}
+
+async function triggerAdventureAssist() {
+  const result = await api("/gm/api/adventure-assist/trigger", { method: "POST", body: "{}" });
+  toast(`已触发 ${result.triggered} 个探险房间的即时清图`);
+  await loadAdventureAssist();
+}
+
 async function loadProgression() {
   state.progression = await api("/gm/api/progression");
   $("profile-identity").innerHTML = state.progression.identities.map((entry) =>
@@ -534,13 +566,15 @@ function bindEvents() {
   $("item-last").addEventListener("click", () => changeItemPage(Math.ceil(state.itemTotal / state.itemPageSize)));
   $("grant-item-form").addEventListener("submit", (event) => confirmGrantItem(event).catch(reportError));
   $("cancel-grant-item").addEventListener("click", () => { state.pendingGrantItem = null; $("grant-item-dialog").close(); });
+  $("assist-toggle").addEventListener("click", () => toggleAdventureAssist().catch(reportError));
+  $("assist-trigger").addEventListener("click", () => triggerAdventureAssist().catch(reportError));
 }
 
 function reportError(error) { console.error(error); toast(error.message || String(error), true); }
 
 async function start() {
   bindEvents();
-  await Promise.all([loadHealth(), loadProgression()]);
+  await Promise.all([loadHealth(), loadProgression(), loadAdventureAssist()]);
   await loadItems(true);
   await loadAccounts();
 }
