@@ -35,6 +35,7 @@ ARM64 主机运行 `./start-server-linux-arm64.sh`。三个脚本都会在前台
 
 - 存档：`runtime/data/qqtang.sqlite`，升级或迁移前请自行备份。
 - GM：默认 `http://127.0.0.1:18100/gm/`；远程开放前必须设置强密码。
+- 探险掉落助手：GM 页面可按道具名称或 ID 查询怪物候选掉落池与隐藏墙材料池，概率字段按实际规则语义展示。
 - 服务端日志：`runtime/logs/server-local.jsonl`，图形启动还会写入 `local-server.stdout.log` 与 `local-server.stderr.log`。
 - 客户端日志：`runtime/logs/local-client-launch*.json` 与 `local-launcher*.stderr.log`。
 
