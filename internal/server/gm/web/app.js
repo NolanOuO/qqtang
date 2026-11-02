@@ -507,7 +507,65 @@ function escapeHTML(value) { const node = document.createElement("span"); node.t
 function setValue(id, value) { $(id).value = value ?? ""; }
 function numberValue(id) { return Number($(id).value); }
 
+function adventureConfidenceLabel(value) {
+  const confidence = String(value || "").toLowerCase();
+  if (confidence.includes("high")) return "较高可信度";
+  if (confidence.includes("medium")) return "中等可信度";
+  if (confidence.includes("low")) return "较低可信度";
+  return value || "未标注可信度";
+}
+
+function adventureDropSourceCard(source) {
+  const item = source.item || {};
+  const isNPC = source.source_kind === "npc";
+  const place = isNPC
+    ? `地图 ${source.map_id} · NPC ${source.npc_id}（${source.npc_instances} 只）`
+    : `地图 ${source.map_id} · 隐藏墙材料池`;
+  const itemTitle = item.name || `道具 ${item.item_id}`;
+  const mechanics = isNPC
+    ? `候选库存生成概率 ${source.inventory_chance_percent}% · 每类候选上限 ${source.max_items_per_inventory} 件 · 道具权重 ${source.item_weight}/${source.total_candidate_weight}`
+    : `每张地图最多抽取 ${source.wall_roll_count} 次 · 每次抽取成功率 ${source.wall_roll_chance_percent}%`;
+  const defaultNote = isNPC
+    ? "概率作用于该 NPC 类型的候选库存生成；同类型怪物实例共享该配置，道具权重用于库存内部抽样。"
+    : "成功的隐藏墙抽取从本地图材料池中选取材料；该概率不是指定道具的单件掉落率。";
+  const details = [item.kind, item.reference].filter(Boolean).join(" · ");
+  return `<article class="adventure-source-card">
+    <div class="adventure-source-heading"><strong>${escapeHTML(place)}</strong><span class="adventure-confidence">${escapeHTML(adventureConfidenceLabel(source.confidence))}</span></div>
+    <p class="adventure-source-item">${escapeHTML(itemTitle)} <small>· ID ${Number(item.item_id) || 0}</small></p>
+    <div class="adventure-source-meta"><span>${escapeHTML(isNPC ? "怪物来源" : "隐藏墙来源")}</span><span>${escapeHTML(mechanics)}</span></div>
+    ${details ? `<p class="adventure-source-note">道具资料：${escapeHTML(details)}</p>` : ""}
+    <p class="adventure-source-note">${escapeHTML(source.notes || defaultNote)}</p>
+    <p class="adventure-source-note">规则池：${escapeHTML(source.pool_id || "未标注")}</p>
+  </article>`;
+}
+
+async function searchAdventureDrops(event) {
+  event.preventDefault();
+  const query = $("adventure-guide-query").value.trim();
+  if (!query) return toast("请输入道具名称或 ID。", true);
+  const kind = $("adventure-guide-kind").value || "all";
+  const params = new URLSearchParams({ q: query, kind });
+  const results = $("adventure-guide-results");
+  const summary = $("adventure-guide-summary");
+  results.innerHTML = '<p class="hint">正在读取探险掉落规则……</p>';
+  summary.textContent = "";
+  try {
+    const data = await api(`/gm/api/adventure/drop-sources?${params.toString()}`);
+    const itemLabel = data.item_id ? `物品 ID ${data.item_id}` : `名称“${data.query}”`;
+    summary.textContent = `${itemLabel} · 找到 ${data.result_count} 条配置来源`;
+    if (!data.sources?.length) {
+      results.innerHTML = '<p class="hint">当前探险规则中没有找到匹配的掉落来源。请检查道具名称、ID 或来源筛选。</p>';
+      return;
+    }
+    results.innerHTML = data.sources.map(adventureDropSourceCard).join("");
+  } catch (error) {
+    results.innerHTML = '<p class="hint">查询失败，请检查服务端状态或 GM 认证。</p>';
+    throw error;
+  }
+}
+
 function bindEvents() {
+  $("adventure-guide-form").addEventListener("submit", (event) => searchAdventureDrops(event).catch(reportError));
   $("account-search").addEventListener("input", renderAccounts);
   $("new-account").addEventListener("click", () => $("create-dialog").showModal());
   $("cancel-create").addEventListener("click", () => $("create-dialog").close());
