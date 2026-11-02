@@ -126,6 +126,23 @@
     </section>
   </main>
 
+  <section class="panel adventure-guide-panel">
+    <div class="panel-title">
+      <div><p class="eyebrow">Adventure Assistant</p><h2>探险掉落助手</h2></div>
+      <span class="count-chip">按服务器探险规则查询</span>
+    </div>
+    <p class="hint">输入道具名称或 ID，查询配置了该道具的探险地图、怪物掉落池和隐藏墙材料池。展示的是候选库存生成规则，不代表指定道具每次击杀必掉。</p>
+    <form id="adventure-guide-form" class="adventure-guide-controls">
+      <label class="search-line wide"><span>道具名称或 ID</span><input id="adventure-guide-query" type="search" maxlength="80" placeholder="例如：草药 或 30007" autocomplete="off" required></label>
+      <label><span>掉落来源</span><select id="adventure-guide-kind"><option value="all">全部来源</option><option value="npc">怪物</option><option value="wall">隐藏墙</option></select></label>
+      <button type="submit" class="primary">查询来源</button>
+    </form>
+    <p id="adventure-guide-summary" class="result-line" aria-live="polite"></p>
+    <div id="adventure-guide-results" class="adventure-guide-results" aria-live="polite">
+      <p class="hint">请输入道具名称或 ID，查看探险掉落来源。</p>
+    </div>
+  </section>
+
   <dialog id="create-dialog">
     <form id="create-form" method="dialog" class="dialog-card">
       <div><p class="eyebrow">New Account</p><h2>创建本地账号</h2></div>
