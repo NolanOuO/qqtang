@@ -24,6 +24,7 @@ import (
 	"qqtang/internal/accountauth"
 	"qqtang/internal/game/equipment"
 	"qqtang/internal/game/itemcatalog"
+	"qqtang/internal/game/mapdata"
 	"qqtang/internal/game/petcatalog"
 	"qqtang/internal/protocol/game"
 	"qqtang/internal/server/application"
@@ -45,6 +46,7 @@ type Server struct {
 	petCardByType    map[uint32]petcatalog.CardLink
 	equipmentCatalog *equipment.Catalog
 	clientRoot       string
+	adventureRules   *mapdata.AdventureRules
 	seedProfile      SeedProfile
 	static           http.Handler
 	objectArchive    *itemcatalog.Archive
@@ -105,6 +107,14 @@ func WithPlayerService(players *application.PlayerService) Option {
 			return fmt.Errorf("GM player service is nil")
 		}
 		server.players = players
+		return nil
+	}
+}
+
+// WithAdventureRules exposes the same read-only, server-owned adventure drop data to the GM guide.
+func WithAdventureRules(rules *mapdata.AdventureRules) Option {
+	return func(server *Server) error {
+		server.adventureRules = rules
 		return nil
 	}
 }
@@ -271,6 +281,7 @@ func (server *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/gm/api/health", server.handleHealth)
 	mux.HandleFunc("/gm/api/progression", server.handleProgression)
+	mux.HandleFunc("/gm/api/adventure/drop-sources", server.handleAdventureDropSources)
 	mux.HandleFunc("/gm/api/accounts", server.handleAccounts)
 	mux.HandleFunc("/gm/api/accounts/", server.handleAccount)
 	mux.HandleFunc("/gm/api/items", server.handleItems)
@@ -296,6 +307,58 @@ func (server *Server) handleProgression(writer http.ResponseWriter, request *htt
 		},
 		"competitive_ranks": game.CompetitiveRanks(),
 		"adventure_ranks":   game.AdventureRanks(),
+	})
+}
+
+func (server *Server) handleAdventureDropSources(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodGet {
+		writeMethodNotAllowed(writer, http.MethodGet)
+		return
+	}
+	if server.adventureRules == nil {
+		writeError(writer, http.StatusServiceUnavailable, "探险掉落规则尚未加载")
+		return
+	}
+
+	values := request.URL.Query()
+	query := strings.TrimSpace(values.Get("q"))
+	sourceKind := strings.ToLower(strings.TrimSpace(values.Get("kind")))
+	if sourceKind == "all" {
+		sourceKind = ""
+	}
+	var itemID uint32
+	if rawID := strings.TrimSpace(values.Get("item_id")); rawID != "" {
+		parsed, err := strconv.ParseUint(rawID, 10, 32)
+		if err != nil || parsed == 0 {
+			writeError(writer, http.StatusBadRequest, "item_id 必须是大于 0 的 32 位无符号整数")
+			return
+		}
+		itemID = uint32(parsed)
+	}
+	// The UI accepts either a name or a numeric ID in one search box.
+	if itemID == 0 && query != "" {
+		if parsed, err := strconv.ParseUint(query, 10, 32); err == nil && parsed > 0 {
+			itemID = uint32(parsed)
+			query = ""
+		}
+	}
+	if itemID == 0 && query == "" {
+		writeError(writer, http.StatusBadRequest, "请输入道具 ID 或名称")
+		return
+	}
+
+	sources, err := server.adventureRules.FindAdventureDropSources(itemID, query, sourceKind)
+	if err != nil {
+		writeError(writer, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(writer, http.StatusOK, map[string]any{
+		"item_id": itemID, "query": query, "source_kind": sourceKind,
+		"result_count": len(sources), "sources": sources,
+		"interpretation": map[string]string{
+			"npc":  "怪物概率表示该 NPC 类型的候选掉落库存生成概率；道具权重用于库存内部抽样，不是单件道具的每击杀必掉率。",
+			"wall": "隐藏墙概率表示每次墙壁材料池抽取的概率；成功抽取后从材料池选取，不保证命中指定道具。",
+		},
 	})
 }
 
