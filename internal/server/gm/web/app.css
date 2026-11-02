@@ -166,3 +166,22 @@ dialog::backdrop { background: rgba(19,48,69,.42); backdrop-filter: blur(3px); }
   .catalog-controls .wide { grid-column: auto; }
   .toolbar button { flex: 1; }
 }
+
+
+/* Read-only adventure drop source assistant. */
+.adventure-guide-panel { max-width: 1520px; margin: 1.2rem auto 2rem; padding: 1.25rem; }
+.adventure-guide-controls { display: grid; grid-template-columns: minmax(260px, 1fr) 190px auto; gap: .8rem; align-items: end; margin-top: 1rem; }
+.adventure-guide-controls .search-line { margin-bottom: 0; }
+.adventure-guide-results { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: .75rem; }
+.adventure-source-card { min-width: 0; padding: 1rem; border: 1px solid rgba(210,228,239,.9); border-radius: 16px; background: rgba(248,252,254,.9); }
+.adventure-source-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .55rem; margin-bottom: .65rem; }
+.adventure-source-heading strong { color: var(--ink); }
+.adventure-source-item { margin: .25rem 0 .65rem; font-weight: 700; }
+.adventure-source-meta { display: flex; flex-wrap: wrap; gap: .4rem; }
+.adventure-source-meta span { display: inline-flex; padding: .3rem .5rem; border-radius: 999px; background: #edf8fb; color: var(--muted); font-size: .75rem; }
+.adventure-source-note { margin: .65rem 0 0; color: var(--muted); font-size: .78rem; line-height: 1.5; }
+.adventure-confidence { font-size: .72rem; color: var(--muted); }
+@media (max-width: 760px) {
+  .adventure-guide-panel { margin: 1rem .75rem 1.5rem; padding: 1rem; }
+  .adventure-guide-controls { grid-template-columns: 1fr; }
+}
